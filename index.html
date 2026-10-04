@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1626">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
 <title>Countdown Game</title>
 
 <style>
@@ -22,8 +25,23 @@
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 20px;
+        min-height: 100vh;
         background: #0f1626;
         color: #e8ecf1;
+    }
+
+    #fullscreen-btn {
+        display: block;
+        width: 100%;
+        margin: 20px 0 10px;
+        padding: 16px;
+        min-height: 56px;
+        font-size: 18px;
+        background: #141d33;
+        color: #e8ecf1;
+        border: 1px solid #2a3654;
+        border-radius: 10px;
+        cursor: pointer;
     }
 
     #target-box {
@@ -702,6 +720,8 @@
     <ul id="calc-log"></ul>
 </div>
 
+<button id="fullscreen-btn" type="button" style="display:none">Full Screen</button>
+
 <script>
     const OP_DISPLAY = { "+": "+", "-": "−", "*": "×", "/": "÷" };
 
@@ -1195,13 +1215,85 @@
     updateBigSmallLabels();
     generateGame(1); // default: 1 big number
 
-    // Browsers only allow fullscreen from a user gesture, so request it on the first tap.
-    document.addEventListener("click", () => {
-        const el = document.documentElement;
-        if (!document.fullscreenElement && el.requestFullscreen) {
-            el.requestFullscreen().catch(() => {});
+    // Fullscreen support
+    (function () {
+        const docEl = document.documentElement;
+        const btn = document.getElementById("fullscreen-btn");
+        let userExited = false;
+
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement);
         }
-    }, { once: true });
+        function canFullscreen() {
+            return !!(docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen);
+        }
+        function isInstalledApp() {
+            return !!((window.matchMedia && (window.matchMedia("(display-mode: fullscreen)").matches ||
+                window.matchMedia("(display-mode: standalone)").matches)) || navigator.standalone);
+        }
+        function enterFullscreen() {
+            try {
+                const fn = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen;
+                const p = fn.call(docEl);
+                if (p && p.catch) p.catch(() => {});
+            } catch (e) {}
+        }
+        function exitFullscreen() {
+            try {
+                const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                if (fn) {
+                    const p = fn.call(document);
+                    if (p && p.catch) p.catch(() => {});
+                }
+            } catch (e) {}
+        }
+        function updateBtn() {
+            btn.textContent = isFullscreen() ? "Exit Full Screen" : "Full Screen";
+        }
+
+        if (canFullscreen() && !isInstalledApp()) {
+            btn.style.display = "block";
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (isFullscreen()) {
+                    userExited = true;
+                    exitFullscreen();
+                } else {
+                    userExited = false;
+                    enterFullscreen();
+                }
+            });
+            document.addEventListener("fullscreenchange", updateBtn);
+            document.addEventListener("webkitfullscreenchange", updateBtn);
+            updateBtn();
+        }
+
+        // Best effort: browsers need a user gesture, so retry on the first few taps.
+        if (canFullscreen() && !isInstalledApp()) {
+            let attempts = 0;
+            const auto = (e) => {
+                if (isFullscreen()) {
+                    remove();
+                    return;
+                }
+                if (userExited || (e.target && e.target.closest && e.target.closest("#fullscreen-btn"))) return;
+                enterFullscreen();
+                if (++attempts >= 6) remove();
+            };
+            const remove = () => {
+                document.removeEventListener("click", auto);
+                document.removeEventListener("touchend", auto);
+            };
+            document.addEventListener("click", auto);
+            document.addEventListener("touchend", auto);
+        }
+
+        if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("sw.js").catch(() => {});
+            });
+        }
+    })();
 </script>
 
 <div id="solved-modal">
@@ -1214,4 +1306,4 @@
 </div>
 
 </body>
-</html>
+</html>
