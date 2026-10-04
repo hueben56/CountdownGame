@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Countdown Game</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    button, .tile, .op-btn {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #0f1626;
+        color: #e8ecf1;
+    }
+
+    #target-box {
+        background: #141d33;
+        border: 1px solid #2a3654;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    #target-box .label {
+        color: #8b97b0;
+        letter-spacing: 2px;
+        font-size: 13px;
+    }
