@@ -910,6 +910,24 @@
         if (!last) return; // can't start an expression with an operator
         if (last.kind === "op" && last.value !== ")") return; // no two operators in a row
 
+        let start = tokens.length;
+        while (start > 0 && tokens[start - 1].kind === "tile") start--;
+        if (tokens.length - start > 1) {
+            // several tiles in a row: apply the operator between all of them
+            const run = tokens.slice(start);
+            const wrap = start > 0;
+            const out = tokens.slice(0, start);
+            if (wrap) out.push({ kind: "op", value: "(", auto: true });
+            run.forEach((t, i) => {
+                if (i > 0) out.push({ kind: "op", value: op, auto: true });
+                out.push(t);
+            });
+            if (wrap) out.push({ kind: "op", value: ")", auto: true });
+            tokens = out;
+            updateExpression();
+            return;
+        }
+
         tokens.push({ kind: "op", value: op });
         updateExpression();
     }
@@ -1105,6 +1123,18 @@
     function undo() {
         const last = tokens.pop();
         if (!last) return;
+        if (last.auto) {
+            if (last.value === ")") {
+                // unwrap the auto-inserted group back into plain tiles
+                let i = tokens.length - 1;
+                while (i >= 0 && !(tokens[i].auto && tokens[i].value === "(")) i--;
+                if (i >= 0) {
+                    tokens = tokens.slice(0, i).concat(tokens.slice(i + 1).filter(t => !t.auto));
+                }
+            }
+            updateExpression();
+            return;
+        }
         if (last.kind === "tile") {
             const tile = allTiles.find(t => t.id === last.id);
             if (tile) tile.used = false;
@@ -1112,6 +1142,7 @@
         } else if (last.value === "(" || last.value === ")") {
             parenToggle = last.value === "(";
         }
+        while (tokens.length && tokens[tokens.length - 1].auto) tokens.pop();
         updateExpression();
     }
 
@@ -1183,4 +1214,4 @@
 </div>
 
 </body>
-</html>
+</html>
